@@ -12,29 +12,32 @@ from afd import adicionar, LETRAS, DIGITOS, LDU
 
 
 def montar_reservadas_id_num():
-    """
-    TODO (Integrante 2)
+    # 1) Saídas de q0
+    adicionar("q0", {"s"}, "q_s")
+    adicionar("q0", {"e"}, "q_e")
+    adicionar("q0", {"r"}, "q_r")
+    adicionar("q0", LETRAS - {"s", "e", "r"}, "q_id")
+    adicionar("q0", DIGITOS, "q_num")
+    # '_' em q0: sem transição -> q_erro por padrão
 
-    1) Saídas de q0:   s -> q_s ; e -> q_e ; r -> q_r
-                       outra letra (a..z menos s, e, r) -> q_id
-                       D (0..9) -> q_num
-       (q0 com '_' NÃO tem transição: cai em q_erro por padrão)
+    # 2) e 3) Tries + desvio para q_id
+    # Cada cadeia: lista de estados; o estado i lê a letra palavra[i+1].
+    cadeias = [
+        ("senao",    ["q_s", "q_se", "q_sen", "q_sena", "q_senao"]),
+        ("enquanto", ["q_e", "q_en", "q_enq", "q_enqu", "q_enqua",
+                      "q_enquan", "q_enquant", "q_enquanto"]),
+        ("retorne",  ["q_r", "q_re", "q_ret", "q_reto", "q_retor",
+                      "q_retorn", "q_retorne"]),
+    ]
 
-    2) Trie de senao:     q_s -e-> q_se -n-> q_sen -a-> q_sena -o-> q_senao
-       Trie de enquanto:  q_e -n-> q_en -q-> q_enq -u-> q_enqu -a-> q_enqua
-                          -n-> q_enquan -t-> q_enquant -o-> q_enquanto
-       Trie de retorne:   q_r -e-> q_re -t-> q_ret -o-> q_reto -r-> q_retor
-                          -n-> q_retorn -e-> q_retorne
+    for palavra, estados in cadeias:
+        for i in range(len(estados) - 1):
+            proxima = palavra[i + 1]
+            adicionar(estados[i], {proxima}, estados[i + 1])   # segue a trie
+            adicionar(estados[i], LDU - {proxima}, "q_id")     # qualquer outra L, D ou _
+        # último estado da cadeia: não há próxima letra
+        adicionar(estados[-1], LDU, "q_id")
 
-    3) Em TODOS os estados das 3 cadeias:
-       "outra L, D, U" (letras diferentes da próxima letra da cadeia
-       + todos os dígitos + '_') -> q_id
-       Em q_senao, q_enquanto e q_retorne não há próxima letra:
-       LDU inteiro -> q_id.
-
-    4) Laços:  q_id  --LDU--> q_id        q_num --D--> q_num
-
-    Dica: LETRAS - {"e"} dá "todas as letras menos e".
-    Confira: se1, sena, senao2, senao_, enquant, retorne_x, 12abc.
-    """
-    pass
+    # 4) Laços
+    adicionar("q_id", LDU, "q_id")
+    adicionar("q_num", DIGITOS, "q_num")
